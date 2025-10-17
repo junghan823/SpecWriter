@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>SpecWriter Guide MVP</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Inter", "Apple SD Gothic Neo", sans-serif;
+        font-size: 12px;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+        color: #1f1f1f;
+      }
+      header {
+        padding: 12px 16px;
+        border-bottom: 1px solid #ededed;
+      }
+      h1 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .section {
+        padding: 12px 16px;
+      }
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid #ededed;
+      }
+      .tab {
+        flex: 1;
+        padding: 10px 12px;
+        text-align: center;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      .tab.active {
+        color: #ffffff;
+        background: #1f1f1f;
+      }
+      .panel {
+        padding: 12px 16px;
+        overflow: auto;
+        height: 280px;
+        background: #f7f7f7;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        line-height: 1.6;
+      }
+      textarea {
+        width: 100%;
+        min-height: 80px;
+        padding: 8px;
+        resize: vertical;
+        font-size: 12px;
+      }
+      button {
+        appearance: none;
+        border: none;
+        background: #1f1f1f;
+        color: #ffffff;
+        padding: 8px 12px;
+        font-size: 12px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button[disabled] {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px;
+        justify-content: flex-start;
+        align-items: center;
+      }
+      .input-group {
+        padding: 12px 16px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .manual-notes {
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .manual-helper {
+        font-size: 10px;
+        color: #777;
+      }
+      .manual-notes textarea {
+        min-height: 220px;
+      }
+      .manual-notes select {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 6px 8px;
+        font-size: 12px;
+      }
+      .classification-group {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .classification-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .advanced-notes {
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 8px 12px;
+        background: #fafafa;
+      }
+      .advanced-notes summary {
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        outline: none;
+      }
+      .advanced-grid {
+        margin-top: 8px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .advanced-grid textarea {
+        min-height: 100px;
+      }
+      .manual-note {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      label {
+        font-size: 11px;
+        color: #555;
+      }
+      input {
+        border: 1px solid #ccc;
+        padding: 6px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      .status {
+        padding: 0 16px 12px;
+        font-size: 11px;
+        color: #666;
+        min-height: 28px;
+        display: flex;
+        align-items: center;
+      }
+      .status.error {
+        color: #c62828;
+      }
+      .status.success {
+        color: #2e7d32;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 6px;
+        background: #eee;
+        border-radius: 4px;
+        font-size: 10px;
+        margin-left: 8px;
+      }
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .copy {
+        background: #0066ff;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="toolbar">
+        <div>
+          <h1>
+            SpecWriter Guide
+            <span id="variantCount" class="badge" hidden>variants</span>
+          </h1>
+          <div id="componentName" style="font-size: 11px; color: #666;"></div>
+        </div>
+        <button id="refreshButton" style="background:#4f4f4f;">새로고침</button>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="data">데이터</div>
+      <div class="tab" data-tab="guide">가이드</div>
+    </div>
+
+    <div class="panel" id="panel">
+      <pre id="panelContent">선택된 컴포넌트가 없습니다.</pre>
+    </div>
+
+    <div class="input-group">
+      <label for="apiKey">OpenAI API Key</label>
+      <input
+        type="password"
+        id="apiKey"
+        placeholder="sk-..."
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="manual-notes">
+      <div class="classification-group">
+        <div class="classification-field">
+          <label for="componentType">컴포넌트 타입</label>
+          <select id="componentType">
+            <option value="interactive">Interactive</option>
+            <option value="composite" selected>Composite</option>
+            <option value="layout">Layout</option>
+            <option value="display">Display</option>
+            <option value="form">Form</option>
+          </select>
+        </div>
+        <div class="classification-field">
+          <label for="complexity">복잡도</label>
+          <select id="complexity">
+            <option value="simple">Simple</option>
+            <option value="medium" selected>Medium</option>
+            <option value="complex">Complex</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="policyNotes">컴포넌트 정책 메모</label>
+      <textarea
+        id="policyNotes"
+        placeholder="# 🧩 Accordion 컴포넌트 디자인 정책&#10;&#10;## 1. ..."
+      ></textarea>
+      <div class="manual-helper">
+        섹션 제목이나 키워드를 포함해 붙여넣으면 AI가 각 섹션에 맞춰 분류합니다.
+      </div>
+
+      <details class="advanced-notes">
+        <summary>고급 설정 및 섹션별 메모 (선택)</summary>
+        <div class="advanced-grid">
+          <div class="manual-note">
+            <label for="anatomyNotes">구조 / Anatomy</label>
+            <textarea id="anatomyNotes" placeholder="예) 필수 파트, 선택 파트, 계층 구조"></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="variantNotes">변형 / Variants</label>
+            <textarea id="variantNotes" placeholder="예) 크기, 테마, 상태 별 조합"></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="stateNotes">상태 / States</label>
+            <textarea id="stateNotes" placeholder="예) Default, Hover, Active, Disabled..."></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="typographyNotes">타이포그래피 & 색상</label>
+            <textarea id="typographyNotes" placeholder="예) Title=subtitle3, Description=captionM, 색상 토큰"></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="layoutNotes">간격 & 레이아웃</label>
+            <textarea id="layoutNotes" placeholder="예) Auto-layout, padding, spacing 규칙"></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="interactionNotes">인터랙션 & 애니메이션</label>
+            <textarea id="interactionNotes" placeholder="예) 트리거, 애니메이션 시간/easing"></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="responsiveNotes">반응형</label>
+            <textarea id="responsiveNotes" placeholder="예) 브레이크포인트, 줄바꿈 유형"></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="accessibilityNotes">접근성</label>
+            <textarea id="accessibilityNotes" placeholder="예) ARIA, 키보드, 포커스 규칙"></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="usageNotes">사용 가이드</label>
+            <textarea id="usageNotes" placeholder="예) 추천/금지 사례, 시나리오"></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="customizationNotes">커스텀 옵션</label>
+            <textarea id="customizationNotes" placeholder="예) styleOverrides 가능한 항목"></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="constraintsNotes">제약 & 제한</label>
+            <textarea id="constraintsNotes" placeholder="예) 사용 불가 케이스, 최대 중첩 수 등"></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="referencesNotes">연관 컴포넌트 / 참고</label>
+            <textarea id="referencesNotes" placeholder="예) 관련 컴포넌트, 문서 링크"></textarea>
+          </div>
+          <div class="manual-note">
+            <label for="useCasesNotes">사용 시나리오</label>
+            <textarea id="useCasesNotes" placeholder="예) FAQ, 설정 화면 등 시나리오별 권장 사항"></textarea>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="actions">
+      <button id="generateButton">AI 가이드 생성</button>
+      <button id="copyButton" class="copy" disabled>복사</button>
+    </div>
+
+    <div class="status" id="status">컴포넌트를 선택하면 자동으로 데이터가 표시됩니다.</div>
+
+    <script>
+      const tabs = document.querySelectorAll(".tab");
+      const panelContent = document.getElementById("panelContent");
+      const panel = document.getElementById("panel");
+      const statusEl = document.getElementById("status");
+      const componentNameEl = document.getElementById("componentName");
+      const variantCountEl = document.getElementById("variantCount");
+      const refreshButton = document.getElementById("refreshButton");
+      const generateButton = document.getElementById("generateButton");
+      const copyButton = document.getElementById("copyButton");
+      const apiKeyInput = document.getElementById("apiKey");
+      const policyNotesInput = document.getElementById("policyNotes");
+      const componentTypeSelect = document.getElementById("componentType");
+      const complexitySelect = document.getElementById("complexity");
+      const anatomyNotesInput = document.getElementById("anatomyNotes");
+      const variantNotesInput = document.getElementById("variantNotes");
+      const stateNotesInput = document.getElementById("stateNotes");
+      const typographyNotesInput = document.getElementById("typographyNotes");
+      const layoutNotesInput = document.getElementById("layoutNotes");
+      const interactionNotesInput = document.getElementById("interactionNotes");
+      const responsiveNotesInput = document.getElementById("responsiveNotes");
+      const accessibilityNotesInput = document.getElementById("accessibilityNotes");
+      const usageNotesInput = document.getElementById("usageNotes");
+      const customizationNotesInput = document.getElementById("customizationNotes");
+      const constraintsNotesInput = document.getElementById("constraintsNotes");
+      const referencesNotesInput = document.getElementById("referencesNotes");
+      const useCasesNotesInput = document.getElementById("useCasesNotes");
+
+      let activeTab = "data";
+      let metadata = null;
+      let guideOutput = "";
+
+      function setStatus(message, type = "info") {
+        statusEl.textContent = message;
+        statusEl.classList.remove("error", "success");
+        if (type === "error") {
+          statusEl.classList.add("error");
+        } else if (type === "success") {
+          statusEl.classList.add("success");
+        }
+      }
+
+      function render() {
+        if (activeTab === "data") {
+          panelContent.textContent = metadata
+            ? JSON.stringify(metadata, null, 2)
+            : "선택된 컴포넌트가 없습니다.";
+        } else {
+          panelContent.textContent = guideOutput || "아직 생성된 가이드가 없습니다.";
+        }
+      }
+
+      function updateHeader(data) {
+        if (!data) {
+          componentNameEl.textContent = "";
+          variantCountEl.hidden = true;
+          return;
+        }
+        componentNameEl.textContent = data.name;
+        if (Array.isArray(data.variants) && data.variants.length > 0) {
+          variantCountEl.hidden = false;
+          variantCountEl.textContent = `${data.variants.length} variants`;
+        } else {
+          variantCountEl.hidden = true;
+        }
+      }
+
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          tabs.forEach((t) => t.classList.remove("active"));
+          tab.classList.add("active");
+          activeTab = tab.dataset.tab;
+          render();
+        });
+      });
+
+      refreshButton.addEventListener("click", () => {
+        parent.postMessage({ pluginMessage: { type: "request-metadata" } }, "*");
+        setStatus("데이터를 새로고침하는 중입니다...");
+      });
+
+      function requestCopy(text) {
+        parent.postMessage(
+          { pluginMessage: { type: "copy-guide", payload: text } },
+          "*"
+        );
+        setStatus("복사를 요청했습니다...");
+      }
+
+      copyButton.addEventListener("click", () => {
+        if (!guideOutput) return;
+        requestCopy(guideOutput);
+      });
+
+
+      function valueOf(input) {
+        if (!input || typeof input.value !== "string") {
+          return "";
+        }
+        return input.value.trim();
+      }
+
+      function collectManualInputs() {
+        return {
+          rawPolicy: valueOf(policyNotesInput),
+          componentType: valueOf(componentTypeSelect) || "composite",
+          complexity: valueOf(complexitySelect) || "medium",
+          structuredNotes: {
+            anatomy: valueOf(anatomyNotesInput),
+            variants: valueOf(variantNotesInput),
+            states: valueOf(stateNotesInput),
+            typography: valueOf(typographyNotesInput),
+            layout: valueOf(layoutNotesInput),
+            interactions: valueOf(interactionNotesInput),
+            responsive: valueOf(responsiveNotesInput),
+            accessibility: valueOf(accessibilityNotesInput),
+            usage: valueOf(usageNotesInput),
+            customization: valueOf(customizationNotesInput),
+            constraints: valueOf(constraintsNotesInput),
+            references: valueOf(referencesNotesInput),
+            useCases: valueOf(useCasesNotesInput)
+          }
+        };
+      }
+
+      function typeGuidance(componentType) {
+        const guidanceMap = {
+          interactive: [
+            "- 상호작용 상태(Default, Hover, Active, Disabled)를 비교 표로 정리한다.",
+            "- 클릭/터치/키보드 입력에 대한 피드백과 애니메이션을 명시한다.",
+            "- 포커스 스타일과 접근성 규칙을 반드시 포함한다."
+          ],
+          composite: [
+            "- 하위 컴포넌트 간 관계와 조합 패턴을 다이어그램으로 설명한다.",
+            "- 각 섹션이 어떤 데이터를 표시하는지 명확히 정의한다.",
+            "- 상태 변화 흐름(열림/닫힘, 활성/비활성)을 단계별로 정리한다."
+          ],
+          layout: [
+            "- spacing, alignment, breakpoints를 수치와 함께 설명한다.",
+            "- 허용되는 중첩 구조와 제약을 표로 정리한다.",
+            "- 반응형 동작과 콘텐츠 적응 방식을 예시로 제시한다."
+          ],
+          display: [
+            "- 크기 옵션, 컬러 토큰, 타이포그래피 조합을 표로 제시한다.",
+            "- 정보 위계와 상태(정보 없음, 경고 등)를 구분해 설명한다.",
+            "- 이미지/아이콘 등 비주얼 요소 규칙을 포함한다."
+          ],
+          form: [
+            "- 라벨, 도움말, 에러 메시지 구조를 정의한다.",
+            "- 검증 규칙과 상태별 피드백(UI/텍스트)을 설명한다.",
+            "- 접근성 요구사항(필수/선택, 키보드, 스크린리더)을 포함한다."
+          ]
+        };
+
+        const list = guidanceMap[componentType] || [];
+        if (list.length === 0) {
+          return "(정보 없음)";
+        }
+        return list.join("\n");
+      }
+
+      function buildPrompt(metadata, manualInputs) {
+        const manualJson = {
+          componentType: manualInputs.componentType,
+          complexity: manualInputs.complexity,
+          structuredNotes: manualInputs.structuredNotes
+        };
+
+        const typeSpecificGuidance = typeGuidance(manualInputs.componentType);
+
+        return `Context:
+- 제품: SpecWriter 디자인 시스템
+- 작성자: 디자인 시스템 디자이너
+- 대상 컴포넌트: ${metadata.name}
+
+Component Metadata (JSON):
+${JSON.stringify(metadata, null, 2)}
+
+Manual Structured Inputs (JSON):
+${JSON.stringify(manualJson, null, 2)}
+
+Manual Policy Notes (raw markdown):
+${manualInputs.rawPolicy || "(정보 없음)"}
+
+Instruction:
+- 당신은 디자인 시스템 문서화 전문가이며, 디자이너가 바로 활용할 수 있는 가이드를 작성해야 한다.
+- 한국어로 작성하고, 수집된 데이터와 제공된 메모에 기반한 사실만 기술한다. 추측이나 임의값을 추가하지 않는다.
+- Manual Structured Inputs의 필드를 우선 활용하되 비어 있는 값은 Component Metadata에서 확보 가능한 정보로 보완한다.
+- Manual Policy Notes는 섹션 제목이나 키워드를 분석해 적절한 섹션에 재구성한다.
+- 제공된 정보가 없거나 불확실하면 해당 섹션에 "(정보 없음)"이라고 명시한다.
+- 표, 리스트, 코드 블록 등 마크다운 포맷은 아래 블루프린트를 그대로 따른다.
+- Do's / Don'ts 형태의 사용 가이드를 포함하고, 가능한 경우 시각적 예시(텍스트 다이어그램)를 제공한다.
+- componentType에 따른 추가 가이드는 다음을 따른다:
+${typeSpecificGuidance}
+
+Section Inclusion Rules:
+- 하위 컴포넌트 데이터가 없으면 "## 7. 하위 컴포넌트 & 조합" 섹션에 "(정보 없음)"이라고 적는다.
+- 인터랙션/애니메이션 정보가 없으면 "## 8. 인터랙션 & 애니메이션"에 "(정보 없음)"으로 표기한다.
+- 반응형 정보가 없으면 "## 9. 반응형"에 "(정보 없음)"으로 표기한다.
+- 접근성 정보가 없으면 "## 10. 접근성"에 "(정보 없음)"으로 표기한다.
+
+Output Blueprint:
+# 🧩 ${metadata.name} 컴포넌트
+
+## 1. 개요
+- 목적, 사용 맥락, 카테고리(componentType/complexity)를 bullet로 정리한다.
+- 주요 행동이나 사용자 가치 한 줄 요약을 포함한다.
+
+## 2. 구조 (Anatomy)
+- 컴포넌트 계층 구조를 코드 블록(\`\`\`) 다이어그램으로 제시한다.
+- 필수/선택 파트를 구분하고 역할을 설명한다.
+
+## 3. 변형 (Variants)
+- 크기/테마/상태 등 Variant 조합을 표로 정리한다. 헤더 예: | Variant | 설명 | 사용 맥락 |
+
+## 4. 상태 (States)
+- 상태별 시각/동작 변화를 표로 정리한다. 헤더 예: | 상태 | 배경/테두리 | 텍스트 | 아이콘 | 메모 |
+
+## 5. 타이포그래피 & 색상
+- textStyles, 색상 토큰을 표로 명시한다. 헤더 예: | 요소 | 폰트 | 크기 | 라인하이트 | 색상 토큰 |
+
+## 6. 간격 & 레이아웃
+- auto-layout 설정, padding, spacing, alignment를 수치와 함께 bullet 및 표로 정리한다.
+
+## 7. 하위 컴포넌트 & 조합
+- subcomponents 역할, 사용 조건을 bullet/표로 설명한다. 조합 패턴이 있으면 예시 추가.
+
+## 8. 인터랙션 & 애니메이션
+- 트리거, 애니메이션 시간/이징, 전환 흐름을 표로 정리한다. 헤더 예: | 트리거 | 결과 | 시간 | Easing |
+
+## 9. 반응형
+- 브레이크포인트, 줄바꿈 시나리오, 레이아웃 변화 예시를 bullet과 코드 블록으로 제공한다.
+
+## 10. 접근성
+- ARIA 속성, 키보드 네비게이션, 포커스 처리, 대비 요구사항을 bullet로 정리한다.
+
+## 11. 사용 가이드
+- Do / Don't 리스트를 표 또는 bullet로 제공하고, 추천 시나리오를 포함한다.
+
+## 12. 커스텀 옵션 & 제약
+- styleOverrides 가능 항목, 제약사항, 관련 컴포넌트를 표나 bullet로 정리한다.`;
+      }
+
+      async function generateGuide() {
+        if (!metadata) {
+          setStatus("먼저 컴포넌트를 선택해 주세요.", "error");
+          return;
+        }
+        const apiKey = apiKeyInput.value.trim();
+        if (!apiKey) {
+          setStatus("OpenAI API Key를 입력해 주세요.", "error");
+          return;
+        }
+
+        generateButton.disabled = true;
+        copyButton.disabled = true;
+        setStatus("AI가 가이드를 생성하고 있습니다...");
+
+        const manualInputs = collectManualInputs();
+        const prompt = buildPrompt(metadata, manualInputs);
+
+        try {
+          const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-4o-mini",
+              messages: [
+                {
+                  role: "system",
+                  content: "You are an assistant that writes Figma component documentation in Korean.",
+                },
+                { role: "user", content: prompt },
+              ],
+              temperature: 0.3,
+            }),
+          });
+
+          if (!response.ok) {
+            let detail = {};
+            try {
+              detail = await response.json();
+            } catch (jsonError) {
+              detail = {};
+            }
+            const message =
+              detail && detail.error && detail.error.message
+                ? detail.error.message
+                : response.statusText;
+            throw new Error(message);
+          }
+
+          const result = await response.json();
+          let content = "(정보 없음)";
+          if (
+            result &&
+            result.choices &&
+            result.choices.length > 0 &&
+            result.choices[0].message &&
+            typeof result.choices[0].message.content === "string"
+          ) {
+            const trimmed = result.choices[0].message.content.trim();
+            content = trimmed || "(정보 없음)";
+          }
+
+          guideOutput = content;
+          activeTab = "guide";
+          tabs.forEach((t) =>
+            t.dataset.tab === "guide"
+              ? t.classList.add("active")
+              : t.classList.remove("active")
+          );
+
+          render();
+          copyButton.disabled = !guideOutput;
+          setStatus("가이드 생성이 완료되었습니다.", "success");
+        } catch (error) {
+          console.error(error);
+          setStatus(`생성 실패: ${error.message}`, "error");
+        } finally {
+          generateButton.disabled = false;
+        }
+      }
+
+      generateButton.addEventListener("click", generateGuide);
+
+      onmessage = (event) => {
+        const pluginMessage = event.data.pluginMessage || {};
+        const type = pluginMessage.type;
+        const payload = pluginMessage.payload || {};
+        if (!type) return;
+
+        if (type === "metadata") {
+          if (payload.error) {
+            metadata = null;
+            guideOutput = "";
+            render();
+            updateHeader(null);
+            setStatus(payload.error, "error");
+            copyButton.disabled = true;
+            return;
+          }
+
+          metadata = payload.data;
+          guideOutput = "";
+          copyButton.disabled = true;
+          if (activeTab !== "data") {
+            activeTab = "data";
+            tabs.forEach((t) =>
+              t.dataset.tab === "data"
+                ? t.classList.add("active")
+                : t.classList.remove("active")
+            );
+          }
+          render();
+          updateHeader(metadata);
+          setStatus("데이터를 불러왔습니다.");
+          return;
+        }
+
+        if (type === "copy-result") {
+          if (payload.success) {
+            setStatus(payload.message || "가이드를 복사했습니다.", "success");
+          } else {
+            setStatus(
+              payload.message || "복사에 실패했습니다. 수동으로 복사해 주세요.",
+              "error"
+            );
+          }
+        }
+      };
+
+      parent.postMessage({ pluginMessage: { type: "request-metadata" } }, "*");
+    </script>
+  </body>
+</html>
